@@ -6,6 +6,7 @@
 /* loady - BigTent load testing tool */
 const _ = require('underscore'),
       fs = require('fs'),
+      load = require('../lib/loady'),
       path = require('path'),
       util = require('util'),
       winston = require('winston');
@@ -24,6 +25,9 @@ var args,
 exports.SHORTCUT_KEY = 0,
 exports.DESC_KEY = 1,
 exports.FUNC_KEY = 2;
+// For when we don't have a funciton, but have a default value... ugly.
+function noop (opt) {};
+exports.DEFAULT_KEY = 3;
 
 // 1) Load app specific config
 function loadConfigure (config_file) {
@@ -38,12 +42,26 @@ function loadConfigure (config_file) {
 }
 
 // Aspects of loady which can be overriden by scripts
+
 exports.defaults = {
+  // Major Mode 1 - Usage message
   help: ['h', 'display this usage message', function (opt){
     opt.showHelp();
-    process.exit(1);
+    process.exit(0);
   }],
-  list: ['l', 'list available activities and exit']
+  list: ['l', 'list available activities and exit'],
+  max: ['m', 'maximum active users to simulate (0 == infinite)', noop, 10000],
+  server: ['s', 'base URL to the server', function (opt) {
+    console.log(opt);
+    if (typeof opt.argv.s !== 'string') {
+      winston.error('Invalid argument to --server [' + opt.argv.s + '].');
+      opt.showHelp();
+      process.exit(4);
+    }
+  }],
+  "user-range": ['u', 'rather than creating users, assume a range of users exist ' +
+    '#@loadtest.domain (with password "THE PASSWORD")'
+  ]
 };
 
 argv = require('optimist')
@@ -74,6 +92,10 @@ Object.keys(gToolConfig).forEach(function (key, i) {
     console.log(key, 'Calling ' + gToolConfig[key][SHORTCUT_KEY] + ' ' + gToolConfig[key][DESC_KEY]);
     argv.alias(gToolConfig[key][SHORTCUT_KEY], key)
         .describe(gToolConfig[key][SHORTCUT_KEY], gToolConfig[key][DESC_KEY]);
+    if (gToolConfig[key][DEFAULT_KEY]) {
+      console.log('Setting ' + key + ' to ' + gToolConfig[key][DEFAULT_KEY]);
+      argv.default(gToolConfig[key][DEFAULT_KEY]);
+    }
   }
 });
 
@@ -121,16 +143,23 @@ if (Object.keys(gActivities).length === 0) {
       path.dirname(argv.argv.c)));
   process.exit(2);
 }
+
+// Major Mode 2 - List Activities
 if (args.l) {
   var a = Object.keys(gActivities).join(', ');
   console.log(Object.keys(gActivities));
   console.log(util.format('available activities: %s', a));
-
   process.exit(0);
 }
-//provision = require('../server/tests/lib/load_gen/provision').startFunc
+
+// Major Mode 3 - Load testing
+const serverConfig = {
+  base: args.s
+}
 
 console.log(gActivities);
-gActivities.provision.startFunc({}, function (err) {
+gActivities.provision.startFunc(serverConfig, function (err) {
   if (err) winston.error(err);
 });
+
+load.run(serverConfig, gActivities, args);

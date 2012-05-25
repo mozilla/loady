@@ -15,7 +15,7 @@ Loady is a load testing framework. You provide a config file and a set of Node m
 
     ./node_module/.bin/loady -c ./tests/load_gen.js
 
-Example ``load_gen.js`` file:
+Example Loady Script ``load_gen.js``:
 
     exports.config = function () {
       return {
@@ -24,9 +24,56 @@ Example ``load_gen.js`` file:
       };
     };
 
+## Loady Activities
+
+Your load testing is accomplished through a series of Loady Activities. These are simply
+Node modules with a ``startFunc`` function and a ``probability`` float.
+
+Example ``lib/load/activities/simple.js``:
+    var common = require('../common');
+
+    exports.probability = 30 / 40;
+    exports.startFunc = function (cfg, cb) {
+      common.requestHomepage(cfg, function (err, statusCode) {
+        if (err) {
+            cb(err);
+        } else if (statusCode >= 500) {
+            cb('too much load');
+        } else if (statusCode !== 200) {
+            cb('error');
+        } else {
+            cb(null);
+        }
+      }
+    };
+
+## Listing Loady Activities
+
+    $ ./node_module/.bin/loady -c ./tests/load_gen.js -l
+    available activities: well_known, provision_no_session, auth, provision
+
+
+## User Database
+
+Loady uses an in-memory representation of users. If you wish to control user creation
+than add an Activity named ``signup``.
+
+Here is the simplest possible example ``lib/load/activities/signup.js``:
+
+    exports.startFunc = function (cfg, cb) {
+        var user = userdb.getNewUser();
+        if (!user) {
+          winston.error(".getNewUser() should *never* return undefined!");
+          process.exit(1);
+        }
+        userdb.addNewUser(user);
+        cb(null);
+      };
+
 ## Adding options to loady CLI
 
-You can override or extend the command line options for loady.
+You can override or extend the command line options for loady to give yourself hooks to your
+own load testing activities:
 
 
     const _ = require('underscore'),
