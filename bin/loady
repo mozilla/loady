@@ -1,0 +1,127 @@
+#!/usr/bin/env node
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/* loady - BigTent load testing tool */
+const _ = require('underscore'),
+      fs = require('fs'),
+      path = require('path'),
+      util = require('util'),
+      winston = require('winston');
+
+var args,
+    argv,
+    // How Loady works
+    gToolConfig = {
+    },
+    // How a particular load testing run works
+    gScriptConfig = {
+      app_name: ''
+    };
+
+exports.SHORTCUT_KEY = 0,
+exports.DESC_KEY = 1,
+exports.FUNC_KEY = 2;
+
+// 1) Load app specific config
+function loadConfigure (config_file) {
+    console.log('ARGV is ', config_file);
+    var f = path.resolve(path.join(process.cwd(), config_file));
+    app = require(f);
+    if (! app.config) {
+      winston.error('Bad config file [' + config_file + '], expected config function which returns an object');
+      process.exit(1);
+    }
+    return app;
+}
+
+// Aspects of loady which can be overriden by scripts
+exports.defaults = {
+  help: ['h', 'display this usage message', function (opt){
+    opt.showHelp();
+    process.exit(1);
+  }]
+};
+
+argv = require('optimist')
+    // --config isn't overridable by loady scripts
+    .alias('c', 'config')
+    .describe('c', 'file with load testing configuration')
+    .demand('config');
+
+var script = loadConfigure(argv.argv.c);
+var customConfig = {};
+if (script.config)
+  gScriptConfig = _.extend(gScriptConfig, script.config());
+
+console.log('gScriptConfig', gScriptConfig);
+
+if (script.cli)
+  gToolConfig = _.extend(exports.defaults, script.cli());
+else
+  gToolConfig = _.extend(exports.defaults);
+
+console.log('gToolConfig=', gToolConfig);
+
+argv.usage(util.format('Apply load to %s services.\nUsage: $0 -c path_to_config.js',
+  gScriptConfig.app_name))
+
+Object.keys(gToolConfig).forEach(function (key, i) {
+  with (exports) {
+    console.log(key, 'Calling ' + gToolConfig[key][SHORTCUT_KEY] + ' ' + gToolConfig[key][DESC_KEY]);
+    argv.alias(gToolConfig[key][SHORTCUT_KEY], key)
+        .describe(gToolConfig[key][SHORTCUT_KEY], gToolConfig[key][DESC_KEY]);
+  }
+});
+
+args = argv.argv;
+
+console.log(argv.argv._);
+
+Object.keys(gToolConfig).forEach(function (key, i) {
+  with (exports) {
+    if (gToolConfig[key][FUNC_KEY]) {
+      var p = gToolConfig[key];
+      var shortcut = p[SHORTCUT_KEY];
+
+      if (args[shortcut]) {
+        console.log('Running function');
+        p[FUNC_KEY](argv);
+      }
+    }
+  }
+});
+
+// Load activies code and data into memory
+activities_dir = path.resolve(path.join(process.cwd(), path.dirname(argv.argv.c), gScriptConfig.activities_dir));
+console.log(activities_dir);
+var files = fs.readdirSync(activities_dir);
+var activities = {};
+files.forEach(function (file, i) {
+  var mod_path = path.join(activities_dir, file);
+  console.log('Seeing ' + mod_path);
+  if (file.slice(-3) !== '.js') return;
+
+  try {
+    var a = require(mod_path);
+    var k = file.slice(0, -3);
+    activities[k] = a;
+  } catch (e) {
+    winston.error(e);
+  }
+});
+
+if (Object.keys(activities).length === 0) {
+  winston.error(
+    util.format("No Node modules located in %s relative to %s. Bailing.",
+      gScriptConfig.activities_dir,
+      path.dirname(argv.argv.c)));
+  process.exit(2);
+}
+//provision = require('../server/tests/lib/load_gen/provision').startFunc
+
+console.log(activities);
+activities.provision.startFunc({}, function (err) {
+  if (err) winston.error(err);
+});
