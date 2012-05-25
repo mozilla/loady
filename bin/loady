@@ -18,7 +18,8 @@ var args,
     // How a particular load testing run works
     gScriptConfig = {
       app_name: ''
-    };
+    },
+    gActivities = {};
 
 exports.SHORTCUT_KEY = 0,
 exports.DESC_KEY = 1,
@@ -41,7 +42,8 @@ exports.defaults = {
   help: ['h', 'display this usage message', function (opt){
     opt.showHelp();
     process.exit(1);
-  }]
+  }],
+  list: ['l', 'list available activities and exit']
 };
 
 argv = require('optimist')
@@ -64,7 +66,7 @@ else
 
 console.log('gToolConfig=', gToolConfig);
 
-argv.usage(util.format('Apply load to %s services.\nUsage: $0 -c path_to_config.js',
+argv.usage(util.format('Apply load to %s services.\nUsage: $0 -c path_to_config.js\n',
   gScriptConfig.app_name))
 
 Object.keys(gToolConfig).forEach(function (key, i) {
@@ -97,7 +99,7 @@ Object.keys(gToolConfig).forEach(function (key, i) {
 activities_dir = path.resolve(path.join(process.cwd(), path.dirname(argv.argv.c), gScriptConfig.activities_dir));
 console.log(activities_dir);
 var files = fs.readdirSync(activities_dir);
-var activities = {};
+
 files.forEach(function (file, i) {
   var mod_path = path.join(activities_dir, file);
   console.log('Seeing ' + mod_path);
@@ -106,22 +108,29 @@ files.forEach(function (file, i) {
   try {
     var a = require(mod_path);
     var k = file.slice(0, -3);
-    activities[k] = a;
+    gActivities[k] = a;
   } catch (e) {
     winston.error(e);
   }
 });
 
-if (Object.keys(activities).length === 0) {
+if (Object.keys(gActivities).length === 0) {
   winston.error(
     util.format("No Node modules located in %s relative to %s. Bailing.",
       gScriptConfig.activities_dir,
       path.dirname(argv.argv.c)));
   process.exit(2);
 }
+if (args.l) {
+  var a = Object.keys(gActivities).join(', ');
+  console.log(Object.keys(gActivities));
+  console.log(util.format('available activities: %s', a));
+
+  process.exit(0);
+}
 //provision = require('../server/tests/lib/load_gen/provision').startFunc
 
-console.log(activities);
-activities.provision.startFunc({}, function (err) {
+console.log(gActivities);
+gActivities.provision.startFunc({}, function (err) {
   if (err) winston.error(err);
 });
