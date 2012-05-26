@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -22,16 +23,17 @@ var args,
     },
     gActivities = {};
 
-exports.SHORTCUT_KEY = 0,
-exports.DESC_KEY = 1,
+exports.SHORTCUT_KEY = 0;
+exports.DESC_KEY = 1;
 exports.FUNC_KEY = 2;
+
 // For when we don't have a funciton, but have a default value... ugly.
-function noop (opt) {};
+function noop (opt) {}
+
 exports.DEFAULT_KEY = 3;
 
 // 1) Load app specific config
 function loadConfigure (config_file) {
-    console.log('ARGV is ', config_file);
     var f = path.resolve(path.join(process.cwd(), config_file));
     app = require(f);
     if (! app.config) {
@@ -52,7 +54,6 @@ exports.defaults = {
   list: ['l', 'list available activities and exit'],
   max: ['m', 'maximum active users to simulate (0 == infinite)', noop, 10000],
   server: ['s', 'base URL to the server', function (opt) {
-    console.log(opt);
     if (typeof opt.argv.s !== 'string') {
       winston.error('Invalid argument to --server [' + opt.argv.s + '].');
       opt.showHelp();
@@ -75,33 +76,25 @@ var customConfig = {};
 if (script.config)
   gScriptConfig = _.extend(gScriptConfig, script.config());
 
-console.log('gScriptConfig', gScriptConfig);
-
 if (script.cli)
   gToolConfig = _.extend(exports.defaults, script.cli());
 else
   gToolConfig = _.extend(exports.defaults);
 
-console.log('gToolConfig=', gToolConfig);
-
 argv.usage(util.format('Apply load to %s services.\nUsage: $0 -c path_to_config.js\n',
-  gScriptConfig.app_name))
+  gScriptConfig.app_name));
 
 Object.keys(gToolConfig).forEach(function (key, i) {
   with (exports) {
-    console.log(key, 'Calling ' + gToolConfig[key][SHORTCUT_KEY] + ' ' + gToolConfig[key][DESC_KEY]);
     argv.alias(gToolConfig[key][SHORTCUT_KEY], key)
         .describe(gToolConfig[key][SHORTCUT_KEY], gToolConfig[key][DESC_KEY]);
     if (gToolConfig[key][DEFAULT_KEY]) {
-      console.log('Setting ' + key + ' to ' + gToolConfig[key][DEFAULT_KEY]);
       argv.default(gToolConfig[key][DEFAULT_KEY]);
     }
   }
 });
 
 args = argv.argv;
-
-console.log(argv.argv._);
 
 Object.keys(gToolConfig).forEach(function (key, i) {
   with (exports) {
@@ -110,7 +103,6 @@ Object.keys(gToolConfig).forEach(function (key, i) {
       var shortcut = p[SHORTCUT_KEY];
 
       if (args[shortcut]) {
-        console.log('Running function');
         p[FUNC_KEY](argv);
       }
     }
@@ -119,12 +111,10 @@ Object.keys(gToolConfig).forEach(function (key, i) {
 
 // Load activies code and data into memory
 activities_dir = path.resolve(path.join(process.cwd(), path.dirname(argv.argv.c), gScriptConfig.activities_dir));
-console.log(activities_dir);
 var files = fs.readdirSync(activities_dir);
 
 files.forEach(function (file, i) {
   var mod_path = path.join(activities_dir, file);
-  console.log('Seeing ' + mod_path);
   if (file.slice(-3) !== '.js') return;
 
   try {
@@ -147,7 +137,6 @@ if (Object.keys(gActivities).length === 0) {
 // Major Mode 2 - List Activities
 if (args.l) {
   var a = Object.keys(gActivities).join(', ');
-  console.log(Object.keys(gActivities));
   console.log(util.format('available activities: %s', a));
   process.exit(0);
 }
@@ -155,11 +144,6 @@ if (args.l) {
 // Major Mode 3 - Load testing
 const serverConfig = {
   base: args.s
-}
-
-console.log(gActivities);
-gActivities.provision.startFunc(serverConfig, function (err) {
-  if (err) winston.error(err);
-});
+};
 
 load.run(serverConfig, gActivities, args);
