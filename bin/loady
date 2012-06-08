@@ -54,6 +54,7 @@ exports.defaults = {
   list: ['l', 'list available activities and exit'],
   max: ['m', 'maximum active users to simulate (0 == infinite)', noop, 10000],
   server: ['s', 'base URL to the server', function (opt) {
+    //TODO optimist has fail that does this ....
     if (typeof opt.argv.s !== 'string') {
       winston.error('Invalid argument to --server [' + opt.argv.s + '].');
       opt.showHelp();
@@ -93,6 +94,8 @@ Object.keys(gToolConfig).forEach(function (key, i) {
     }
   }
 });
+// TODO make default and required easy in the gToolConfig
+argv.demand('server');
 
 args = argv.argv;
 
