@@ -32,9 +32,10 @@ Example Loady Script ``load_gen.js``:
       };
     };
 
-On average, a user does about 40 activities per day. We name the app for use
-in --help. ``activities_dir`` is a path (relative to this config file) which
-comntains all of our Activities.
+On average, a user does about 40 activities per day.  If you provide an application
+name it will be displayed with usage via `--help`. ``activities_dir`` is a path
+(relative to this config file) which contains different Activities -- simulated
+user interactions.
 
 Loady Activities
 ----------------
