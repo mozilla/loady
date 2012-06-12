@@ -104,6 +104,7 @@ Reading Loady Output
 --------------------
 
 Average active users simulated over the last 1s/5s/60s:
+
     0.00    0.00    0.00    4 R, 4 S (4wn 0pn)
     8657.28     8657.28     8657.28     4 R, 5 S (4wn 0pn)
     10832.40    9744.84     9744.84     7 R, 8 S (7wn 0pn)
