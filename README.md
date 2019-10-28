@@ -126,7 +126,7 @@ The R column is the number of activities that are still running.
 
 The S column is the total number of activities started in the last second.
 
-This is followed by a list of activites still running broken down by firsta
+This is followed by a list of activities still running broken down by firsta
 and last character of the activity name.
 
 So for example:
@@ -134,7 +134,7 @@ So for example:
     8657.28     8657.28     8657.28     4 R, 5 S (4wn 0pn)
 
 4 **w**ake_o**n** activities are running. One other process was completed in
-the last second. The typoe of the process completed is unknown, it could ahve
+the last second. The typoe of the process completed is unknown, it could have
 been a wn or pn.
 
 ### Errors
@@ -145,7 +145,7 @@ under load. Don't worry.
     8657.28     8657.28     8657.28     4 R, 7 S (4wn 0pn) (1 ERRORS!) (2 503s)
 
 This indicates that 1 of the activities ended in an error condition and
-2 of the activites finished with a 503.
+2 of the activities finished with a 503.
 
 Loady Options
 -------------
